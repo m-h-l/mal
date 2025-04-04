@@ -6,11 +6,28 @@ import (
 	"os"
 )
 
+func read() string {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("user> ")
+	text, err := reader.ReadString('\n')
+	if err != nil {
+		panic(err)
+	}
+	return text
+}
+
+func eval(input string) string {
+	return input
+}
+
+func print(output string) {
+	fmt.Println(output)
+}
+
 func main() {
 	for {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("user> ")
-		text, _ := reader.ReadString('\n')
-		fmt.Println(text)
+		input := read()
+		evaled := eval(input)
+		print(evaled)
 	}
 }
