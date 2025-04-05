@@ -5,7 +5,7 @@ import "fmt"
 type MalTypeId int
 
 const (
-	Atom MalTypeId = iota
+	Symbol MalTypeId = iota
 	Number
 	String
 	List
@@ -23,26 +23,26 @@ type MalAtom interface {
 	GetAtomTypeId() MalTypeId
 }
 
-type MalGenericAtom struct {
-	atom string
+type MalSymbol struct {
+	symbol string
 }
 
-func NewMalGenericAtom(atom string) *MalGenericAtom {
-	return &MalGenericAtom{
-		atom: atom,
+func NewMalGenericAtom(symbol string) *MalSymbol {
+	return &MalSymbol{
+		symbol: symbol,
 	}
 }
 
-func (atom *MalGenericAtom) GetAtomTypeId() MalTypeId {
-	return Atom
+func (symbol *MalSymbol) GetAtomTypeId() MalTypeId {
+	return Symbol
 }
 
-func (atom *MalGenericAtom) GetTypeId() MalTypeId {
-	return atom.GetAtomTypeId()
+func (symbol *MalSymbol) GetTypeId() MalTypeId {
+	return symbol.GetAtomTypeId()
 }
 
-func (atom MalGenericAtom) GetStr() string {
-	return atom.atom
+func (symbol MalSymbol) GetStr() string {
+	return symbol.symbol
 }
 
 type MalNumber struct {
@@ -64,6 +64,10 @@ func (num *MalNumber) GetTypeId() MalTypeId {
 
 func (num MalNumber) GetStr() string {
 	return fmt.Sprintf("%d", num.num)
+}
+
+func (num MalNumber) Add(other MalNumber) MalNumber {
+	return *NewMalNumber(num.num + other.num)
 }
 
 type MalString struct {

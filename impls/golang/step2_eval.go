@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"mal/env"
+	"mal/evaluator"
 	"mal/parser"
 	"mal/reader"
 	"mal/types"
@@ -20,9 +21,24 @@ func read() string {
 	return text
 }
 
-func eval(input string, env env.Env) (types.MalType, bool) {
+func eval(input string) (types.MalType, bool) {
 	r := reader.NewReader(input)
-	return parser.Parse(r)
+	ast, ok := parser.Parse(r)
+	if !ok {
+		return nil, false
+	}
+	env := env.Env{
+		Fns: []env.Fn{
+			env.NewBuiltinFn("+", func(args ...types.MalType) []types.MalType {
+				if len(args) >= 2 && args[0].GetTypeId() == types.Number && args[1].GetTypeId() == types.Number {
+					r := args[0].(*types.MalNumber).Add(*(args[1].(*types.MalNumber)))
+					return append([]types.MalType{&r}, args[2:]...)
+				}
+				return nil
+			}),
+		},
+	}
+	return evaluator.Eval(ast, env), true
 }
 
 func print(output types.MalType) {
@@ -32,7 +48,7 @@ func print(output types.MalType) {
 func main() {
 	for {
 		input := read()
-		evaled, ok := eval(input, env.Env{})
+		evaled, ok := eval(input)
 		if ok {
 			print(evaled)
 		}
