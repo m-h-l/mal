@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mal/reader"
 	"mal/types"
+	"strconv"
 	"strings"
 )
 
@@ -125,6 +126,11 @@ func readAtom(r *reader.Reader) (types.MalAtom, bool) {
 	if strings.HasPrefix(t, "\"") {
 		fmt.Println("EOF")
 		return nil, false
+	}
+
+	i, err := strconv.ParseInt(t, 10, 64)
+	if err == nil {
+		return types.NewMalNumber(i), true
 	}
 
 	return types.NewMalGenericAtom(t), true

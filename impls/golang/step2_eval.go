@@ -20,8 +20,6 @@ func read() string {
 	return text
 }
 
-func evaluate()
-
 func eval(input string, env env.Env) (types.MalType, bool) {
 	r := reader.NewReader(input)
 	return parser.Parse(r)
@@ -34,7 +32,7 @@ func print(output types.MalType) {
 func main() {
 	for {
 		input := read()
-		evaled, ok := eval(input)
+		evaled, ok := eval(input, env.Env{})
 		if ok {
 			print(evaled)
 		}
