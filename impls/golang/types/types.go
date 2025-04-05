@@ -1,9 +1,13 @@
 package types
 
+import "fmt"
+
 type MalTypeId int
 
 const (
 	Atom MalTypeId = iota
+	Number
+	String
 	List
 	Vector
 	Map
@@ -14,22 +18,74 @@ type MalType interface {
 	GetStr() string
 }
 
-func NewMalAtom(atom string) *MalAtom {
-	return &MalAtom{
+type MalAtom interface {
+	MalType
+	GetAtomTypeId() MalTypeId
+}
+
+type MalGenericAtom struct {
+	atom string
+}
+
+func NewMalGenericAtom(atom string) *MalGenericAtom {
+	return &MalGenericAtom{
 		atom: atom,
 	}
 }
 
-type MalAtom struct {
-	atom string
-}
-
-func (atom *MalAtom) GetTypeId() MalTypeId {
+func (atom *MalGenericAtom) GetAtomTypeId() MalTypeId {
 	return Atom
 }
 
-func (atom MalAtom) GetStr() string {
+func (atom *MalGenericAtom) GetTypeId() MalTypeId {
+	return atom.GetAtomTypeId()
+}
+
+func (atom MalGenericAtom) GetStr() string {
 	return atom.atom
+}
+
+type MalNumber struct {
+	num int64
+}
+
+func NewMalNumber(num int64) *MalNumber {
+	return &MalNumber{
+		num: num,
+	}
+}
+
+func (num *MalNumber) GetAtomTypeId() MalTypeId {
+	return Number
+}
+func (num *MalNumber) GetTypeId() MalTypeId {
+	return num.GetAtomTypeId()
+}
+
+func (num MalNumber) GetStr() string {
+	return fmt.Sprintf("%d", num.num)
+}
+
+type MalString struct {
+	str string
+}
+
+func NewMalString(str string) *MalString {
+	return &MalString{
+		str: str,
+	}
+}
+
+func (str *MalString) GetAtomTypeId() MalTypeId {
+	return String
+}
+
+func (str *MalString) GetTypeId() MalTypeId {
+	return str.GetAtomTypeId()
+}
+
+func (str MalString) GetStr() string {
+	return "\"" + str.str + "\""
 }
 
 func NewMalList(kind MalTypeId, children []MalType) *MalList {

@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"mal/env"
 	"mal/parser"
 	"mal/reader"
 	"mal/types"
@@ -19,7 +20,9 @@ func read() string {
 	return text
 }
 
-func eval(input string) (types.MalType, bool) {
+func evaluate()
+
+func eval(input string, env env.Env) (types.MalType, bool) {
 	r := reader.NewReader(input)
 	return parser.Parse(r)
 }
