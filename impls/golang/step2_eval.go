@@ -28,14 +28,11 @@ func eval(input string) (types.MalType, bool) {
 		return nil, false
 	}
 	env := env.Env{
-		Fns: []env.Fn{
-			env.NewBuiltinFn("+", func(args ...types.MalType) []types.MalType {
-				if len(args) >= 2 && args[0].GetTypeId() == types.Number && args[1].GetTypeId() == types.Number {
-					r := args[0].(*types.MalNumber).Add(*(args[1].(*types.MalNumber)))
-					return append([]types.MalType{&r}, args[2:]...)
-				}
-				return nil
-			}),
+		Fns: []types.Fn{
+			types.Plus(),
+			types.Multiply(),
+			types.Subtract(),
+			types.Divide(),
 		},
 	}
 	return evaluator.Eval(ast, env), true

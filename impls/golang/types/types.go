@@ -11,6 +11,7 @@ const (
 	List
 	Vector
 	Map
+	BuiltInFunction
 )
 
 type MalType interface {
@@ -33,11 +34,15 @@ func NewMalGenericAtom(symbol string) *MalSymbol {
 	}
 }
 
-func (symbol *MalSymbol) GetAtomTypeId() MalTypeId {
+func (symbol MalSymbol) GetAsString() string {
+	return symbol.symbol
+}
+
+func (symbol MalSymbol) GetAtomTypeId() MalTypeId {
 	return Symbol
 }
 
-func (symbol *MalSymbol) GetTypeId() MalTypeId {
+func (symbol MalSymbol) GetTypeId() MalTypeId {
 	return symbol.GetAtomTypeId()
 }
 
@@ -55,10 +60,10 @@ func NewMalNumber(num int64) *MalNumber {
 	}
 }
 
-func (num *MalNumber) GetAtomTypeId() MalTypeId {
+func (num MalNumber) GetAtomTypeId() MalTypeId {
 	return Number
 }
-func (num *MalNumber) GetTypeId() MalTypeId {
+func (num MalNumber) GetTypeId() MalTypeId {
 	return num.GetAtomTypeId()
 }
 
@@ -68,6 +73,18 @@ func (num MalNumber) GetStr() string {
 
 func (num MalNumber) Add(other MalNumber) MalNumber {
 	return *NewMalNumber(num.num + other.num)
+}
+
+func (num MalNumber) Multiply(other MalNumber) MalNumber {
+	return *NewMalNumber(num.num * other.num)
+}
+
+func (num MalNumber) Minus(other MalNumber) MalNumber {
+	return *NewMalNumber(num.num - other.num)
+}
+
+func (num MalNumber) Divide(other MalNumber) MalNumber {
+	return *NewMalNumber(num.num / other.num)
 }
 
 type MalString struct {
@@ -80,11 +97,11 @@ func NewMalString(str string) *MalString {
 	}
 }
 
-func (str *MalString) GetAtomTypeId() MalTypeId {
+func (str MalString) GetAtomTypeId() MalTypeId {
 	return String
 }
 
-func (str *MalString) GetTypeId() MalTypeId {
+func (str MalString) GetTypeId() MalTypeId {
 	return str.GetAtomTypeId()
 }
 
@@ -104,8 +121,28 @@ type MalList struct {
 	kind     MalTypeId
 }
 
-func (list *MalList) GetTypeId() MalTypeId {
-	return List
+func (list MalList) First() MalType {
+	return list.children[0]
+}
+
+func (list MalList) Tail() []MalType {
+	return list.children[1:]
+}
+
+func (list MalList) Children() []MalType {
+	return list.children
+}
+
+func (list MalList) IsEmpty() bool {
+	return len(list.children) == 0
+}
+
+func (list MalList) Size() int {
+	return len(list.children)
+}
+
+func (list MalList) GetTypeId() MalTypeId {
+	return list.kind
 }
 
 func (list MalList) Limiters() (string, string) {
