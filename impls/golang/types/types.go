@@ -1,6 +1,8 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type MalTypeId int
 
@@ -11,6 +13,7 @@ const (
 	List
 	Vector
 	Map
+	DefinedFunction
 	BuiltInFunction
 )
 
@@ -169,4 +172,13 @@ func (list MalList) GetStr() string {
 	}
 	str += end
 	return str
+}
+
+type MalFnCtx interface {
+}
+
+type MalFn interface {
+	MalType
+	Apply(ctx MalFnCtx, args ...MalType)
+	GetName() string
 }
