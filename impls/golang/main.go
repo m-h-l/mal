@@ -28,7 +28,7 @@ func eval(input string, e *env.Env) (types.MalType, bool) {
 	if !ok {
 		return nil, false
 	}
-	return evaluator.Eval(ast, e), true
+	return evaluator.Eval(ast, e)
 }
 
 func print(output types.MalType) {
