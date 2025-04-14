@@ -118,6 +118,18 @@ func readAtom(r *reader.Reader) (types.MalAtom, bool) {
 		return nil, false
 	}
 
+	if t == "nil" {
+		return types.NewMalNil(), true
+	}
+
+	if t == "true" {
+		return types.NewMalBool(true), true
+	}
+
+	if t == "false" {
+		return types.NewMalBool(false), true
+	}
+
 	if strings.HasPrefix(t, "\"") && strings.HasSuffix(t, "\"") {
 		val := t[1 : len(t)-1]
 		return types.NewMalString(val), true
