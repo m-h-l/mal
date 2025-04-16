@@ -19,6 +19,10 @@ func (num MalNumber) GetTypeId() MalTypeId {
 	return num.GetAtomTypeId()
 }
 
+func (num MalNumber) GetAsInt() int64 {
+	return num.num
+}
+
 func (num MalNumber) GetStr() string {
 	return fmt.Sprintf("%d", num.num)
 }

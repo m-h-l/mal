@@ -11,7 +11,7 @@ func NewMalBool(state bool) *MalBool {
 }
 
 func (bool MalBool) GetAtomTypeId() MalTypeId {
-	return Number
+	return Boolean
 }
 func (bool MalBool) GetTypeId() MalTypeId {
 	return bool.GetAtomTypeId()
@@ -22,6 +22,10 @@ func (bool MalBool) GetStr() string {
 		return "true"
 	}
 	return "false"
+}
+
+func (bool MalBool) GetState() bool {
+	return bool.state
 }
 
 func (bool MalBool) And(other MalBool) MalBool {

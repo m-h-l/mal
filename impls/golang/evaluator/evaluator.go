@@ -8,12 +8,25 @@ import (
 )
 
 func isSpecialForm(name string) bool {
-	m := map[string]interface{}{"def!": nil, "let*": nil}
+	m := map[string]interface{}{"if": nil, "def!": nil, "let*": nil, "fn*": nil}
 	_, ok := m[name]
 	return ok
 }
 
 func Eval(ast types.MalType, e *env.Env) (types.MalType, bool) {
+
+	if v, ok := e.Get(*types.NewMalGenericAtom("DEBUG-EVAL")); ok {
+		switch o := (*v).(type) {
+		case *types.MalNil:
+		case *types.MalBool:
+			if !o.GetState() {
+				fmt.Printf("EVAL: %s\n", ast.GetStr())
+			}
+		default:
+			fmt.Printf("EVAL: %s\n", ast.GetStr())
+		}
+	}
+
 	switch v := ast.(type) {
 	case *types.MalSymbol:
 		res, ok := e.Get(*v)
@@ -55,7 +68,15 @@ func evalList(list *types.MalList, e *env.Env) (types.MalType, bool) {
 		}
 		return fnExpr.(core.BuiltInFn).Apply(e, args...)
 	case types.DefinedFunction:
-		panic("boom")
+		args := []types.MalType{}
+		for _, arg := range list.Tail() {
+			r, ok := Eval(arg, e)
+			if !ok {
+				return list, false
+			}
+			args = append(args, r)
+		}
+		return fnExpr.(*core.DefinedFn).Apply(e, args...)
 	default:
 		args := []types.MalType{}
 		for _, item := range list.Children() {
@@ -75,6 +96,32 @@ func apply(list types.MalList, e *env.Env) (types.MalType, bool) {
 	rest := list.Tail()
 
 	switch form.GetStr() {
+	case "if":
+		if len(rest) < 2 {
+			panic("boom!")
+		}
+
+		first, _ := Eval(rest[0], e)
+
+		if len(rest) == 2 {
+			if first.GetTypeId() == types.Nil {
+				return types.NewMalNil(), true
+			}
+			if first.GetTypeId() == types.Boolean && !first.(*types.MalBool).GetState() {
+				return types.NewMalNil(), true
+			}
+			return Eval(rest[1], e)
+		}
+
+		third := rest[2]
+
+		if first.GetTypeId() == types.Nil {
+			return Eval(third, e)
+		}
+		if first.GetTypeId() == types.Boolean && !first.(*types.MalBool).GetState() {
+			return Eval(third, e)
+		}
+		return Eval(rest[1], e)
 	case "def!":
 		if len(rest) < 2 {
 			panic("boom!")
@@ -115,6 +162,29 @@ func apply(list types.MalList, e *env.Env) (types.MalType, bool) {
 			ne.Add(k, r)
 		}
 		return Eval(second, ne)
+	case "fn*":
+		first, second := rest[0], rest[1]
+		if first.GetTypeId() != types.List && first.GetTypeId() != types.Vector {
+			panic("puff!")
+		}
+
+		// Capture the current environment in a closure
+		binds := first.(*types.MalList).Children()
+		body := second
+		return core.NewDefinedFn(func(closureEnv *env.Env, args ...types.MalType) types.MalType {
+			ne := env.NewEnv(e)
+			for n, param := range binds {
+				sy := *param.(*types.MalSymbol)
+				if sy.GetAsString() == "&" {
+					b := *binds[n+1].(*types.MalSymbol)
+					ne.Add(b, types.NewMalList(types.List, args[n:]))
+					break
+				}
+				ne.Add(sy, args[n])
+			}
+			result, _ := Eval(body, ne)
+			return result
+		}), true
 	default:
 		return list, true
 	}
