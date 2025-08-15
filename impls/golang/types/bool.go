@@ -17,7 +17,7 @@ func (bool MalBool) GetTypeId() MalTypeId {
 	return bool.GetAtomTypeId()
 }
 
-func (bool MalBool) GetStr() string {
+func (bool MalBool) GetStr(readable bool) string {
 	if bool.state {
 		return "true"
 	}

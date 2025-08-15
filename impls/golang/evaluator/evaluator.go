@@ -8,7 +8,7 @@ import (
 )
 
 func isSpecialForm(name string) bool {
-	m := map[string]interface{}{"if": nil, "def!": nil, "let*": nil, "fn*": nil}
+	m := map[string]interface{}{"if": nil, "def!": nil, "let*": nil, "fn*": nil, "do": nil}
 	_, ok := m[name]
 	return ok
 }
@@ -20,10 +20,10 @@ func Eval(ast types.MalType, e *env.Env) (types.MalType, bool) {
 		case *types.MalNil:
 		case *types.MalBool:
 			if !o.GetState() {
-				fmt.Printf("EVAL: %s\n", ast.GetStr())
+				fmt.Printf("EVAL: %s\n", ast.GetStr(false))
 			}
 		default:
-			fmt.Printf("EVAL: %s\n", ast.GetStr())
+			fmt.Printf("EVAL: %s\n", ast.GetStr(false))
 		}
 	}
 
@@ -52,7 +52,7 @@ func evalList(list *types.MalList, e *env.Env) (types.MalType, bool) {
 
 	fnExpr, _ := Eval(list.First(), e)
 
-	if isSpecialForm(fnExpr.GetStr()) {
+	if isSpecialForm(fnExpr.GetStr(false)) {
 		return apply(*list, e)
 	}
 
@@ -95,7 +95,7 @@ func apply(list types.MalList, e *env.Env) (types.MalType, bool) {
 	form := list.First()
 	rest := list.Tail()
 
-	switch form.GetStr() {
+	switch form.GetStr(false) {
 	case "if":
 		if len(rest) < 2 {
 			panic("boom!")
@@ -185,6 +185,21 @@ func apply(list types.MalList, e *env.Env) (types.MalType, bool) {
 			result, _ := Eval(body, ne)
 			return result
 		}), true
+	case "do":
+		if len(rest) == 0 {
+			return types.NewMalNil(), true
+		}
+		for i := 0; i < len(rest)-1; i++ {
+			_, ok := Eval(rest[i], e)
+			if !ok {
+				return list, false
+			}
+		}
+		last, ok := Eval(rest[len(rest)-1], e)
+		if !ok {
+			return list, false
+		}
+		return last, true
 	default:
 		return list, true
 	}

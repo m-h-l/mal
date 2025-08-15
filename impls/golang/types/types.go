@@ -17,7 +17,7 @@ const (
 
 type MalType interface {
 	GetTypeId() MalTypeId
-	GetStr() string
+	GetStr(bool) string
 }
 
 type MalAtom interface {
@@ -47,7 +47,7 @@ func (symbol MalSymbol) GetTypeId() MalTypeId {
 	return symbol.GetAtomTypeId()
 }
 
-func (symbol MalSymbol) GetStr() string {
+func (symbol MalSymbol) GetStr(readable bool) string {
 	return symbol.symbol
 }
 
@@ -66,7 +66,7 @@ func (nil MalNil) GetTypeId() MalTypeId {
 	return nil.GetAtomTypeId()
 }
 
-func (nil MalNil) GetStr() string {
+func (nil MalNil) GetStr(readable bool) string {
 	return "nil"
 }
 

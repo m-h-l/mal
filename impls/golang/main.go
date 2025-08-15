@@ -32,7 +32,7 @@ func eval(input string, e *env.Env) (types.MalType, bool) {
 }
 
 func print(output types.MalType) {
-	fmt.Println(output.GetStr())
+	fmt.Println(output.GetStr(true))
 }
 
 func main() {

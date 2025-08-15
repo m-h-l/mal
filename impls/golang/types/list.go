@@ -49,11 +49,11 @@ func (list MalList) Limiters() (string, string) {
 	}
 }
 
-func (list MalList) GetStr() string {
+func (list MalList) GetStr(readable bool) string {
 	start, end := list.Limiters()
 	str := start
 	for i, child := range list.children {
-		str += child.GetStr()
+		str += child.GetStr(readable)
 		if i < len(list.children)-1 {
 			str += " "
 		}

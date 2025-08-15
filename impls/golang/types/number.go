@@ -23,7 +23,7 @@ func (num MalNumber) GetAsInt() int64 {
 	return num.num
 }
 
-func (num MalNumber) GetStr() string {
+func (num MalNumber) GetStr(readable bool) string {
 	return fmt.Sprintf("%d", num.num)
 }
 

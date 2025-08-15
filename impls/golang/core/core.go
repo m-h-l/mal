@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mal/env"
 	"mal/types"
+	"strings"
 )
 
 type BuiltInFn struct {
@@ -26,7 +27,7 @@ func (fn BuiltInFn) Apply(e *env.Env, args ...types.MalType) (types.MalType, boo
 	return fn.fn(e, args...), true
 }
 
-func (fn BuiltInFn) GetStr() string {
+func (fn BuiltInFn) GetStr(readable bool) string {
 	return "builtin<" + fn.name + ">"
 }
 
@@ -52,7 +53,7 @@ func (fn DefinedFn) GetTypeId() types.MalTypeId {
 	return fn.GetAtomTypeId()
 }
 
-func (fn DefinedFn) GetStr() string {
+func (fn DefinedFn) GetStr(readable bool) string {
 	return "#<function>"
 }
 
@@ -138,7 +139,7 @@ func PrintStr() BuiltInFn {
 			fmt.Println("")
 		}
 		if len(args) == 1 {
-			fmt.Println(args[0].GetStr())
+			fmt.Println(args[0].GetStr(true))
 		}
 		return types.NewMalNil()
 	})
@@ -183,11 +184,13 @@ func Count() BuiltInFn {
 		if len(args) == 0 {
 			panic("boom!")
 		}
-		if args[0].GetTypeId() != types.List {
+		switch args[0].GetTypeId() {
+		case types.List, types.Vector:
+			list := args[0].(*types.MalList)
+			return types.NewMalNumber(int64(len(list.Children())))
+		default:
 			return types.NewMalNumber(0)
 		}
-		list := args[0].(*types.MalList)
-		return types.NewMalNumber(int64(len(list.Children())))
 	})
 }
 
@@ -208,7 +211,7 @@ func eq(a types.MalType, b types.MalType) bool {
 	if a.GetTypeId() != b.GetTypeId() {
 		return false
 	}
-	if a.GetStr() != b.GetStr() {
+	if a.GetStr(false) != b.GetStr(false) {
 		return false
 	}
 	return true
@@ -300,6 +303,71 @@ func BiggerOrEqual() BuiltInFn {
 	})
 }
 
+func Prn() BuiltInFn {
+	return NewBuiltinFn("prn", func(e *env.Env, args ...types.MalType) types.MalType {
+		output := []string{}
+		for _, arg := range args {
+			output = append(output, arg.GetStr(true)) // Use escaped representation
+		}
+		fmt.Println(strings.Join(output, " ")) // Print joined output
+		return types.NewMalNil()               // Return nil
+	})
+}
+
+func Println() BuiltInFn {
+	return NewBuiltinFn("println", func(e *env.Env, args ...types.MalType) types.MalType {
+		output := []string{}
+		for _, arg := range args {
+			if arg.GetTypeId() == types.String {
+				output = append(output, arg.(*types.MalString).GetStr(true)) // Use raw string for MalString
+			} else {
+				output = append(output, arg.GetStr(true)) // Use escaped representation for other types
+			}
+		}
+		fmt.Println(strings.Join(output, " ")) // Print joined output
+		return types.NewMalNil()               // Return nil
+	})
+}
+
+func PrStr() BuiltInFn {
+	return NewBuiltinFn("pr-str", func(e *env.Env, args ...types.MalType) types.MalType {
+		output := []string{}
+		for _, arg := range args {
+			output = append(output, arg.GetStr(true)) // Use escaped representation
+		}
+		return types.NewMalString(strings.Join(output, " ")) // Return joined string
+	})
+}
+
+func Str() BuiltInFn {
+	return NewBuiltinFn("str", func(e *env.Env, args ...types.MalType) types.MalType {
+		var builder strings.Builder
+		for _, arg := range args {
+			if arg.GetTypeId() == types.String {
+				builder.WriteString(arg.(*types.MalString).GetStr(true)) // Use raw string for MalString
+			} else {
+				builder.WriteString(arg.GetStr(true)) // Use escaped representation for other types
+			}
+		}
+		return types.NewMalString(builder.String())
+	})
+}
+
+func Not() BuiltInFn {
+	return NewBuiltinFn("not", func(e *env.Env, args ...types.MalType) types.MalType {
+		if len(args) == 0 {
+			fmt.Println("")
+		} else {
+			args[0].GetTypeId() // Ensure the type is checked
+			if args[0].GetTypeId() == types.Nil || (args[0].GetTypeId() == types.Boolean && !args[0].(*types.MalBool).GetState()) {
+				return types.NewMalBool(true)
+			}
+			return types.NewMalBool(false)
+		}
+		return types.NewMalNil()
+	})
+}
+
 func AddCoreToEnv(e *env.Env) {
 	builtins := []BuiltInFn{
 		Plus(),
@@ -316,6 +384,11 @@ func AddCoreToEnv(e *env.Env) {
 		SmallerOrEqual(),
 		Bigger(),
 		BiggerOrEqual(),
+		Not(),
+		Str(),
+		PrStr(),
+		Prn(),
+		Println(),
 	}
 
 	for _, builtin := range builtins {
