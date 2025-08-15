@@ -5,6 +5,7 @@ import (
 	"mal/core"
 	"mal/env"
 	"mal/types"
+	"strings"
 )
 
 func isSpecialForm(name string) bool {
@@ -30,6 +31,9 @@ func Eval(ast types.MalType, e *env.Env) (types.MalType, bool) {
 	switch v := ast.(type) {
 	case *types.MalSymbol:
 		res, ok := e.Get(*v)
+		if !ok && strings.HasPrefix(v.GetAsString(), ":") {
+			return v, true
+		}
 		if !ok && !isSpecialForm(v.GetAsString()) {
 			fmt.Printf("Symbol '%s' not found\n", v.GetAsString())
 			return v, false

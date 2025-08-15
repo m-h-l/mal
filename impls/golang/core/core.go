@@ -303,53 +303,41 @@ func BiggerOrEqual() BuiltInFn {
 	})
 }
 
+func concatArgs(args []types.MalType, separator string, readable bool) string {
+	result := []string{}
+	for _, arg := range args {
+		result = append(result, arg.GetStr(readable)) // Use raw representation
+	}
+	return strings.Join(result, separator)
+}
+
 func Prn() BuiltInFn {
 	return NewBuiltinFn("prn", func(e *env.Env, args ...types.MalType) types.MalType {
-		output := []string{}
-		for _, arg := range args {
-			output = append(output, arg.GetStr(true)) // Use escaped representation
-		}
-		fmt.Println(strings.Join(output, " ")) // Print joined output
-		return types.NewMalNil()               // Return nil
+		result := concatArgs(args, " ", true)
+		fmt.Println(result)
+		return types.NewMalNil()
 	})
 }
 
 func Println() BuiltInFn {
 	return NewBuiltinFn("println", func(e *env.Env, args ...types.MalType) types.MalType {
-		output := []string{}
-		for _, arg := range args {
-			if arg.GetTypeId() == types.String {
-				output = append(output, arg.(*types.MalString).GetStr(true)) // Use raw string for MalString
-			} else {
-				output = append(output, arg.GetStr(true)) // Use escaped representation for other types
-			}
-		}
-		fmt.Println(strings.Join(output, " ")) // Print joined output
-		return types.NewMalNil()               // Return nil
+		result := concatArgs(args, " ", false)
+		fmt.Println(result)
+		return types.NewMalNil()
 	})
 }
 
 func PrStr() BuiltInFn {
 	return NewBuiltinFn("pr-str", func(e *env.Env, args ...types.MalType) types.MalType {
-		output := []string{}
-		for _, arg := range args {
-			output = append(output, arg.GetStr(true)) // Use escaped representation
-		}
-		return types.NewMalString(strings.Join(output, " ")) // Return joined string
+		result := concatArgs(args, " ", true)
+		return types.NewMalString(result) // Return joined string
 	})
 }
 
 func Str() BuiltInFn {
 	return NewBuiltinFn("str", func(e *env.Env, args ...types.MalType) types.MalType {
-		var builder strings.Builder
-		for _, arg := range args {
-			if arg.GetTypeId() == types.String {
-				builder.WriteString(arg.(*types.MalString).GetStr(true)) // Use raw string for MalString
-			} else {
-				builder.WriteString(arg.GetStr(true)) // Use escaped representation for other types
-			}
-		}
-		return types.NewMalString(builder.String())
+		result := concatArgs(args, "", false) // Use raw representation
+		return types.NewMalString(result)
 	})
 }
 

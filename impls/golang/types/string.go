@@ -29,15 +29,13 @@ func (str MalString) GetStr(readable bool) string {
 				escaped += "\\t"
 			case '\r':
 				escaped += "\\r"
-			case '\\':
-				escaped += "\\\\"
 			case '"':
-				escaped += "\\\""
+				escaped += "\""
 			default:
 				escaped += string(ch)
 			}
 		}
-		return escaped
+		return "\"" + escaped + "\""
 	}
 	return str.str
 }
