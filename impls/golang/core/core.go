@@ -133,18 +133,6 @@ func Divide() BuiltInFn {
 	})
 }
 
-func PrintStr() BuiltInFn {
-	return NewBuiltinFn("pr-str", func(e *env.Env, args ...types.MalType) types.MalType {
-		if len(args) == 0 {
-			fmt.Println("")
-		}
-		if len(args) == 1 {
-			fmt.Println(args[0].GetStr(true))
-		}
-		return types.NewMalNil()
-	})
-}
-
 func List() BuiltInFn {
 	return NewBuiltinFn("list", func(e *env.Env, args ...types.MalType) types.MalType {
 		return types.NewMalList(types.List, args)
@@ -305,10 +293,12 @@ func BiggerOrEqual() BuiltInFn {
 
 func concatArgs(args []types.MalType, separator string, readable bool) string {
 	result := []string{}
+
 	for _, arg := range args {
-		result = append(result, arg.GetStr(readable)) // Use raw representation
+		result = append(result, arg.GetStr(readable))
 	}
 	return strings.Join(result, separator)
+
 }
 
 func Prn() BuiltInFn {
@@ -330,13 +320,13 @@ func Println() BuiltInFn {
 func PrStr() BuiltInFn {
 	return NewBuiltinFn("pr-str", func(e *env.Env, args ...types.MalType) types.MalType {
 		result := concatArgs(args, " ", true)
-		return types.NewMalString(result) // Return joined string
+		return types.NewMalString(result)
 	})
 }
 
 func Str() BuiltInFn {
 	return NewBuiltinFn("str", func(e *env.Env, args ...types.MalType) types.MalType {
-		result := concatArgs(args, "", false) // Use raw representation
+		result := concatArgs(args, "", false)
 		return types.NewMalString(result)
 	})
 }
@@ -362,7 +352,6 @@ func AddCoreToEnv(e *env.Env) {
 		Multiply(),
 		Subtract(),
 		Divide(),
-		PrintStr(),
 		List(),
 		IsList(),
 		Empty(),

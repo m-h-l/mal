@@ -44,6 +44,8 @@ func Eval(ast types.MalType, e *env.Env) (types.MalType, bool) {
 		return *res, true
 	case *types.MalList:
 		return evalList(v, e)
+	case *types.MalString:
+		return v, true
 	default:
 		return ast, true
 	}
