@@ -10,7 +10,7 @@ type MalString struct {
 
 func NewMalString(str string) *MalString {
 	return &MalString{
-		str: parse(str),
+		str: str,
 	}
 }
 
@@ -48,9 +48,22 @@ func (a MalString) Append(b MalString) MalString {
 	return *NewMalString(a.str + b.str)
 }
 
-func parse(str string) string {
-	str = strings.ReplaceAll(str, "\\\"", "\"")
-	str = strings.ReplaceAll(str, "\\\\", "\\")
-	str = strings.ReplaceAll(str, "\\n", "\n")
-	return str
+func Parse(str string) string {
+	if len(str) == 0 {
+		return ""
+	}
+	if len(str) == 1 {
+		return str
+	}
+
+	if str[0] == '\\' && str[1] == '\\' {
+		return "\\" + Parse(str[2:])
+	}
+	if str[0] == '\\' && str[1] == 'n' {
+		return "\n" + Parse(str[2:])
+	}
+	if str[0] == '\\' && str[1] == '"' {
+		return "\"" + Parse(str[2:])
+	}
+	return string(str[0]) + Parse(str[1:])
 }
