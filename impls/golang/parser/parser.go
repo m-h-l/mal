@@ -132,7 +132,7 @@ func readAtom(r *reader.Reader) (types.MalAtom, bool) {
 
 	if strings.HasPrefix(t, "\"") && strings.HasSuffix(t, "\"") {
 		val := t[1 : len(t)-1]
-		return types.NewMalString(val), true
+		return types.NewMalString(types.Parse(val)), true
 	}
 
 	if strings.HasPrefix(t, "\"") {
