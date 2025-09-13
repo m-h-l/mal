@@ -11,8 +11,7 @@ const (
 	List
 	Vector
 	Map
-	DefinedFunction
-	BuiltInFunction
+	Function
 )
 
 type MalType interface {
@@ -70,11 +69,31 @@ func (nil MalNil) GetStr(readable bool) string {
 	return "nil"
 }
 
-type MalFnCtx interface {
+type Env struct {
+	outer *Env
+	data  map[string]MalType
 }
 
-type MalFn interface {
-	MalType
-	Apply(ctx MalFnCtx, args ...MalType)
-	GetName() string
+func NewEnv(outter *Env) *Env {
+	return &Env{
+		outer: outter,
+		data:  map[string]MalType{},
+	}
+}
+
+func (env *Env) Add(symbol MalSymbol, value MalType) {
+	env.data[symbol.GetAsString()] = value
+}
+
+func (env *Env) Get(symbol MalSymbol) (*MalType, bool) {
+	v, ok := env.data[symbol.GetAsString()]
+	if ok {
+		return &v, true
+	}
+
+	if env.outer != nil {
+		return env.outer.Get(symbol)
+	}
+
+	return nil, false
 }

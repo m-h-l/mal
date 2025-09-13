@@ -2,67 +2,12 @@ package core
 
 import (
 	"fmt"
-	"mal/env"
 	"mal/types"
 	"strings"
 )
 
-type BuiltInFn struct {
-	name string
-	fn   func(*env.Env, ...types.MalType) types.MalType
-}
-
-func NewBuiltinFn(name string, fn func(*env.Env, ...types.MalType) types.MalType) BuiltInFn {
-	return BuiltInFn{
-		name: name,
-		fn:   fn,
-	}
-}
-
-func (fn BuiltInFn) GetName() string {
-	return fn.name
-}
-
-func (fn BuiltInFn) Apply(e *env.Env, args ...types.MalType) (types.MalType, bool) {
-	return fn.fn(e, args...), true
-}
-
-func (fn BuiltInFn) GetStr(readable bool) string {
-	return "builtin<" + fn.name + ">"
-}
-
-func (fn BuiltInFn) GetTypeId() types.MalTypeId {
-	return types.BuiltInFunction
-}
-
-type DefinedFn struct {
-	fn func(*env.Env, ...types.MalType) types.MalType
-}
-
-func NewDefinedFn(fn func(*env.Env, ...types.MalType) types.MalType) *DefinedFn {
-	return &DefinedFn{
-		fn: fn,
-	}
-}
-
-func (fn DefinedFn) GetAtomTypeId() types.MalTypeId {
-	return types.DefinedFunction
-}
-
-func (fn DefinedFn) GetTypeId() types.MalTypeId {
-	return fn.GetAtomTypeId()
-}
-
-func (fn DefinedFn) GetStr(readable bool) string {
-	return "#<function>"
-}
-
-func (fn DefinedFn) Apply(e *env.Env, args ...types.MalType) (types.MalType, bool) {
-	return fn.fn(e, args...), true
-}
-
-func Plus() BuiltInFn {
-	return NewBuiltinFn("+", func(e *env.Env, args ...types.MalType) types.MalType {
+func Plus() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		acc := types.NewMalNumber(0)
 		for _, arg := range args {
 			if arg.GetTypeId() != types.Number {
@@ -75,8 +20,8 @@ func Plus() BuiltInFn {
 	})
 }
 
-func Multiply() BuiltInFn {
-	return NewBuiltinFn("*", func(e *env.Env, args ...types.MalType) types.MalType {
+func Multiply() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		acc := types.NewMalNumber(1)
 		for _, arg := range args {
 			if arg.GetTypeId() != types.Number {
@@ -89,8 +34,8 @@ func Multiply() BuiltInFn {
 	})
 }
 
-func Subtract() BuiltInFn {
-	return NewBuiltinFn("-", func(e *env.Env, args ...types.MalType) types.MalType {
+func Subtract() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		for _, arg := range args {
 			if arg.GetTypeId() != types.Number {
 				panic("boom!")
@@ -113,8 +58,8 @@ func Subtract() BuiltInFn {
 	})
 }
 
-func Divide() BuiltInFn {
-	return NewBuiltinFn("/", func(e *env.Env, args ...types.MalType) types.MalType {
+func Divide() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		for _, arg := range args {
 			if arg.GetTypeId() != types.Number {
 				panic("boom!")
@@ -133,14 +78,14 @@ func Divide() BuiltInFn {
 	})
 }
 
-func List() BuiltInFn {
-	return NewBuiltinFn("list", func(e *env.Env, args ...types.MalType) types.MalType {
+func List() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		return types.NewMalList(types.List, args)
 	})
 }
 
-func IsList() BuiltInFn {
-	return NewBuiltinFn("list?", func(e *env.Env, args ...types.MalType) types.MalType {
+func IsList() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		if len(args) == 0 {
 			return types.NewMalBool(false)
 		}
@@ -151,8 +96,8 @@ func IsList() BuiltInFn {
 	})
 }
 
-func Empty() BuiltInFn {
-	return NewBuiltinFn("empty?", func(e *env.Env, args ...types.MalType) types.MalType {
+func Empty() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		if len(args) == 0 {
 			panic("boom!")
 		}
@@ -167,8 +112,8 @@ func Empty() BuiltInFn {
 	})
 }
 
-func Count() BuiltInFn {
-	return NewBuiltinFn("count", func(e *env.Env, args ...types.MalType) types.MalType {
+func Count() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		if len(args) == 0 {
 			panic("boom!")
 		}
@@ -205,8 +150,8 @@ func eq(a types.MalType, b types.MalType) bool {
 	return true
 }
 
-func Equals() BuiltInFn {
-	return NewBuiltinFn("=", func(e *env.Env, args ...types.MalType) types.MalType {
+func Equals() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		if len(args) == 0 {
 			return types.NewMalBool(true)
 		}
@@ -219,8 +164,8 @@ func Equals() BuiltInFn {
 	})
 }
 
-func Smaller() BuiltInFn {
-	return NewBuiltinFn("<", func(e *env.Env, args ...types.MalType) types.MalType {
+func Smaller() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		first := args[0]
 		second := args[1]
 		if first.GetTypeId() != types.Number || second.GetTypeId() != types.Number {
@@ -237,8 +182,8 @@ func Smaller() BuiltInFn {
 	})
 }
 
-func SmallerOrEqual() BuiltInFn {
-	return NewBuiltinFn("<=", func(e *env.Env, args ...types.MalType) types.MalType {
+func SmallerOrEqual() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		first := args[0]
 		second := args[1]
 		if first.GetTypeId() != types.Number || second.GetTypeId() != types.Number {
@@ -255,8 +200,8 @@ func SmallerOrEqual() BuiltInFn {
 	})
 }
 
-func Bigger() BuiltInFn {
-	return NewBuiltinFn(">", func(e *env.Env, args ...types.MalType) types.MalType {
+func Bigger() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		first := args[0]
 		second := args[1]
 		if first.GetTypeId() != types.Number || second.GetTypeId() != types.Number {
@@ -273,8 +218,8 @@ func Bigger() BuiltInFn {
 	})
 }
 
-func BiggerOrEqual() BuiltInFn {
-	return NewBuiltinFn(">=", func(e *env.Env, args ...types.MalType) types.MalType {
+func BiggerOrEqual() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		first := args[0]
 		second := args[1]
 		if first.GetTypeId() != types.Number || second.GetTypeId() != types.Number {
@@ -301,38 +246,38 @@ func concatArgs(args []types.MalType, separator string, readable bool) string {
 
 }
 
-func Prn() BuiltInFn {
-	return NewBuiltinFn("prn", func(e *env.Env, args ...types.MalType) types.MalType {
+func Prn() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		result := concatArgs(args, " ", true)
 		fmt.Println(result)
 		return types.NewMalNil()
 	})
 }
 
-func Println() BuiltInFn {
-	return NewBuiltinFn("println", func(e *env.Env, args ...types.MalType) types.MalType {
+func Println() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		result := concatArgs(args, " ", false)
 		fmt.Println(result)
 		return types.NewMalNil()
 	})
 }
 
-func PrStr() BuiltInFn {
-	return NewBuiltinFn("pr-str", func(e *env.Env, args ...types.MalType) types.MalType {
+func PrStr() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		result := concatArgs(args, " ", true)
 		return types.NewMalString(result)
 	})
 }
 
-func Str() BuiltInFn {
-	return NewBuiltinFn("str", func(e *env.Env, args ...types.MalType) types.MalType {
+func Str() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		result := concatArgs(args, "", false)
 		return types.NewMalString(result)
 	})
 }
 
-func Not() BuiltInFn {
-	return NewBuiltinFn("not", func(e *env.Env, args ...types.MalType) types.MalType {
+func Not() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
 		if len(args) == 0 {
 			fmt.Println("")
 		} else {
@@ -346,29 +291,29 @@ func Not() BuiltInFn {
 	})
 }
 
-func AddCoreToEnv(e *env.Env) {
-	builtins := []BuiltInFn{
-		Plus(),
-		Multiply(),
-		Subtract(),
-		Divide(),
-		List(),
-		IsList(),
-		Empty(),
-		Count(),
-		Equals(),
-		Smaller(),
-		SmallerOrEqual(),
-		Bigger(),
-		BiggerOrEqual(),
-		Not(),
-		Str(),
-		PrStr(),
-		Prn(),
-		Println(),
+func AddCoreToEnv(e *types.Env) {
+	builtins := map[string]*types.MalFunction{
+		"+":       Plus(),
+		"*":       Multiply(),
+		"-":       Subtract(),
+		"/":       Divide(),
+		"list":    List(),
+		"list?":   IsList(),
+		"empty?":  Empty(),
+		"count":   Count(),
+		"=":       Equals(),
+		"<":       Smaller(),
+		"<=":      SmallerOrEqual(),
+		">":       Bigger(),
+		">=":      BiggerOrEqual(),
+		"not":     Not(),
+		"str":     Str(),
+		"pr-str":  PrStr(),
+		"prn":     Prn(),
+		"println": Println(),
 	}
 
-	for _, builtin := range builtins {
-		e.Add(*types.NewMalGenericAtom(builtin.name), builtin)
+	for name, builtin := range builtins {
+		e.Add(*types.NewMalGenericAtom(name), builtin)
 	}
 }
