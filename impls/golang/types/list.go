@@ -1,15 +1,13 @@
 package types
 
-func NewMalList(kind MalTypeId, children []MalType) *MalList {
+func NewMalList(children []MalType) *MalList {
 	return &MalList{
 		children: children,
-		kind:     kind,
 	}
 }
 
 type MalList struct {
 	children []MalType
-	kind     MalTypeId
 }
 
 func (list MalList) First() MalType {
@@ -33,24 +31,11 @@ func (list MalList) Size() int {
 }
 
 func (list MalList) GetTypeId() MalTypeId {
-	return list.kind
-}
-
-func (list MalList) Limiters() (string, string) {
-	switch list.kind {
-	case List:
-		return "(", ")"
-	case Vector:
-		return "[", "]"
-	case Map:
-		return "{", "}"
-	default:
-		panic("Unknown list type")
-	}
+	return List
 }
 
 func (list MalList) GetStr(readable bool) string {
-	start, end := list.Limiters()
+	start, end := "(", ")"
 	str := start
 	for i, child := range list.children {
 		str += child.GetStr(readable)

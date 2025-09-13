@@ -50,7 +50,7 @@ func (fn MalFunction) Prepare(args ...MalType) (MalType, *Env, bool) {
 	for i, param := range fn.binds {
 		if param.(*MalSymbol).GetAsString() == "&" {
 			bind := fn.binds[i+1].(*MalSymbol)
-			newEnv.Add(*bind, NewMalList(List, args[i:]))
+			newEnv.Add(*bind, NewMalList(args[i:]))
 			break
 		}
 		if i < len(args) {

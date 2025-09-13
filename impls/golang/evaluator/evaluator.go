@@ -67,6 +67,45 @@ func evalStep(ast types.MalType, env *types.Env) EvalResult {
 			return NewValue(typedAst, true)
 		}
 		return NewValue(*res, true)
+	case *types.MalVector:
+		if typedAst.IsEmpty() {
+			return NewValue(typedAst, true)
+		}
+
+		fnExpr, _ := Eval(typedAst.First(), env)
+
+		if ok, form := getSpecialForm(fnExpr.GetStr(false)); ok {
+			return form(*typedAst, env)
+		}
+
+		switch fnExpr.GetTypeId() {
+		case types.Function:
+			args := []types.MalType{}
+			for _, arg := range typedAst.Tail() {
+				r, ok := Eval(arg, env)
+				if !ok {
+					return NewValue(typedAst, false)
+				}
+				args = append(args, r)
+			}
+			if malFn, ok := fnExpr.(*types.MalFunction); ok && malFn.CanTCO() {
+				if newAst, newEnv, isTailCall := malFn.Prepare(args...); isTailCall {
+					return NewContinue(newAst, newEnv)
+				}
+			}
+			result, success := fnExpr.(*types.MalFunction).Apply(env, args...)
+			return NewValue(result, success)
+		default:
+			args := []types.MalType{}
+			for _, item := range typedAst.Children() {
+				r, ok := Eval(item, env)
+				if !ok {
+					return NewValue(typedAst, false)
+				}
+				args = append(args, r)
+			}
+			return NewValue(types.NewMalVector(args), true)
+		}
 	case *types.MalList:
 		if typedAst.IsEmpty() {
 			return NewValue(typedAst, true)
@@ -104,7 +143,7 @@ func evalStep(ast types.MalType, env *types.Env) EvalResult {
 				}
 				args = append(args, r)
 			}
-			return NewValue(types.NewMalList(typedAst.GetTypeId(), args), true)
+			return NewValue(types.NewMalList(args), true)
 		}
 	case *types.MalString:
 		return NewValue(typedAst, true)
@@ -113,7 +152,7 @@ func evalStep(ast types.MalType, env *types.Env) EvalResult {
 	}
 }
 
-func evalIf(list types.MalList, e *types.Env) EvalResult {
+func evalIf(list types.MalSeq, e *types.Env) EvalResult {
 	rest := list.Tail()
 	if len(rest) < 2 {
 		panic("boom!")
@@ -143,7 +182,7 @@ func evalIf(list types.MalList, e *types.Env) EvalResult {
 	return NewContinue(third, e)
 }
 
-func evalDef(list types.MalList, e *types.Env) EvalResult {
+func evalDef(list types.MalSeq, e *types.Env) EvalResult {
 	rest := list.Tail()
 	if len(rest) < 2 {
 		panic("boom!")
@@ -161,7 +200,7 @@ func evalDef(list types.MalList, e *types.Env) EvalResult {
 	return NewValue(r, true)
 }
 
-func evalLetN(list types.MalList, e *types.Env) EvalResult {
+func evalLetN(list types.MalSeq, e *types.Env) EvalResult {
 	rest := list.Tail()
 	if len(rest) < 2 {
 		panic("boom!")
@@ -171,7 +210,7 @@ func evalLetN(list types.MalList, e *types.Env) EvalResult {
 		panic("boom!")
 	}
 	ne := types.NewEnv(e)
-	children := second.(*types.MalList).Children()
+	children := second.(types.MalSeq).Children()
 
 	if len(children)%2 != 0 {
 		panic("boom!")
@@ -189,19 +228,19 @@ func evalLetN(list types.MalList, e *types.Env) EvalResult {
 	return NewContinue(third, ne)
 }
 
-func evalFnN(list types.MalList, e *types.Env) EvalResult {
+func evalFnN(list types.MalSeq, e *types.Env) EvalResult {
 	rest := list.Tail()
 	first, second := rest[0], rest[1]
 	if first.GetTypeId() != types.List && first.GetTypeId() != types.Vector {
 		panic("puff!")
 	}
-	binds := first.(*types.MalList).Children()
+	binds := first.(types.MalSeq).Children()
 	body := second
 	fn := types.NewTCOFunction(binds, body, e)
 	return NewValue(fn, true)
 }
 
-func evalDo(list types.MalList, e *types.Env) EvalResult {
+func evalDo(list types.MalSeq, e *types.Env) EvalResult {
 	rest := list.Tail()
 	if len(rest) == 0 {
 		return NewValue(types.NewMalNil(), true)
@@ -215,7 +254,7 @@ func evalDo(list types.MalList, e *types.Env) EvalResult {
 	return NewContinue(rest[len(rest)-1], e)
 }
 
-func evalQuote(list types.MalList, e *types.Env) EvalResult {
+func evalQuote(list types.MalSeq, e *types.Env) EvalResult {
 	rest := list.Tail()
 	if len(rest) != 1 {
 		panic("boom!")
@@ -223,7 +262,7 @@ func evalQuote(list types.MalList, e *types.Env) EvalResult {
 	return NewValue(rest[0], true)
 }
 
-func evalQuasiquote(list types.MalList, e *types.Env) EvalResult {
+func evalQuasiquote(list types.MalSeq, e *types.Env) EvalResult {
 	rest := list.Tail()
 	if len(rest) != 1 {
 		panic("boom!")
@@ -258,7 +297,7 @@ func quasiquoteExpand(ast types.MalType) types.MalType {
 }
 
 func quasiquoteList(children []types.MalType) types.MalType {
-	result := types.NewMalList(types.List, []types.MalType{})
+	result := types.NewMalList([]types.MalType{})
 
 	// Process the list from right to left
 	for i := len(children) - 1; i >= 0; i-- {
@@ -267,14 +306,14 @@ func quasiquoteList(children []types.MalType) types.MalType {
 		// Check if child is (unquote-splicing x)
 		if isSplicingUnquote(child) {
 			splicingChild := child.(*types.MalList).Tail()[0]
-			result = types.NewMalList(types.List, []types.MalType{
+			result = types.NewMalList([]types.MalType{
 				types.NewMalSymbol("concat"),
 				splicingChild,
 				result,
 			})
 		} else {
 			// Regular element - use cons
-			result = types.NewMalList(types.List, []types.MalType{
+			result = types.NewMalList([]types.MalType{
 				types.NewMalSymbol("cons"),
 				quasiquoteExpand(child),
 				result,
@@ -312,8 +351,8 @@ func isSplicingUnquote(ast types.MalType) bool {
 	return false
 }
 
-func getSpecialForm(name string) (bool, func(types.MalList, *types.Env) EvalResult) {
-	m := map[string]func(types.MalList, *types.Env) EvalResult{
+func getSpecialForm(name string) (bool, func(types.MalSeq, *types.Env) EvalResult) {
+	m := map[string]func(types.MalSeq, *types.Env) EvalResult{
 		"if":         evalIf,
 		"def!":       evalDef,
 		"let*":       evalLetN,

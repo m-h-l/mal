@@ -84,7 +84,7 @@ func Divide() *types.MalFunction {
 
 func List() *types.MalFunction {
 	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
-		return types.NewMalList(types.List, args)
+		return types.NewMalList(args)
 	})
 }
 
@@ -108,7 +108,7 @@ func Empty() *types.MalFunction {
 		if args[0].GetTypeId() != types.List && args[0].GetTypeId() != types.Vector {
 			panic("boom!")
 		}
-		list := args[0].(*types.MalList)
+		list := args[0].(types.MalSeq)
 		if len(list.Children()) == 0 {
 			return types.NewMalBool(true)
 		}
@@ -123,7 +123,7 @@ func Count() *types.MalFunction {
 		}
 		switch args[0].GetTypeId() {
 		case types.List, types.Vector:
-			list := args[0].(*types.MalList)
+			list := args[0].(types.MalSeq)
 			return types.NewMalNumber(int64(len(list.Children())))
 		default:
 			return types.NewMalNumber(0)
@@ -132,26 +132,41 @@ func Count() *types.MalFunction {
 }
 
 func eq(a types.MalType, b types.MalType) bool {
-	if (a.GetTypeId() == types.List || a.GetTypeId() == types.Vector) && (b.GetTypeId() == types.List || b.GetTypeId() == types.Vector) {
-		listA := a.(*types.MalList)
-		listB := b.(*types.MalList)
-		if len(listA.Children()) != len(listB.Children()) {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+
+	if (a.GetTypeId() == types.List || a.GetTypeId() == types.Vector) &&
+		(b.GetTypeId() == types.List || b.GetTypeId() == types.Vector) {
+		listA := a.(types.MalSeq)
+		listB := b.(types.MalSeq)
+
+		childrenA := listA.Children()
+		childrenB := listB.Children()
+
+		if len(childrenA) != len(childrenB) {
 			return false
 		}
-		for i := 0; i < len(listA.Children()); i++ {
-			if !eq(listA.Children()[i], listB.Children()[i]) {
+
+		for i := 0; i < len(childrenA); i++ {
+			if !eq(childrenA[i], childrenB[i]) {
 				return false
 			}
 		}
 		return true
 	}
+
 	if a.GetTypeId() != b.GetTypeId() {
 		return false
 	}
-	if a.GetStr(false) != b.GetStr(false) {
-		return false
-	}
-	return true
+
+	aStr := a.GetStr(false)
+	bStr := b.GetStr(false)
+	result := aStr == bStr
+	return result
 }
 
 func Equals() *types.MalFunction {
@@ -444,7 +459,7 @@ func Swap() *types.MalFunction {
 		sArgs := append([]types.MalType{*(atom.Deref())}, args[2:]...)
 
 		newValue, ok := evaluator.Eval(
-			types.NewMalList(types.List, append([]types.MalType{f}, sArgs...)),
+			types.NewMalList(append([]types.MalType{f}, sArgs...)),
 			e,
 		)
 
@@ -452,6 +467,83 @@ func Swap() *types.MalFunction {
 			atom.Set(&newValue)
 			return newValue
 		}
+		panic("boom!")
+	})
+}
+
+func Cons() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
+		if len(args) != 2 {
+			panic("boom!")
+		}
+
+		element := args[0]
+		sequence := args[1]
+
+		// Handle nil (empty list)
+		if sequence == nil || sequence.GetTypeId() == types.Nil {
+			return types.NewMalList([]types.MalType{element})
+		}
+
+		// Handle lists and vectors
+		if sequence.GetTypeId() == types.List || sequence.GetTypeId() == types.Vector {
+			seq := sequence.(types.MalSeq)
+			newElements := make([]types.MalType, len(seq.Children())+1)
+			newElements[0] = element
+			copy(newElements[1:], seq.Children())
+			return types.NewMalList(newElements)
+		}
+
+		panic("boom!")
+	})
+}
+
+func Concat() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
+		result := []types.MalType{}
+
+		for _, arg := range args {
+			if arg == nil || arg.GetTypeId() == types.Nil {
+				// Empty list/nil contributes nothing
+				continue
+			}
+
+			if arg.GetTypeId() == types.List || arg.GetTypeId() == types.Vector {
+				seq := arg.(types.MalSeq)
+				result = append(result, seq.Children()...)
+			} else {
+				panic("boom!")
+			}
+		}
+
+		return types.NewMalList(result)
+	})
+}
+
+func Vec() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
+		if len(args) != 1 {
+			panic("boom!")
+		}
+
+		arg := args[0]
+
+		// If it's already a vector, return it as-is
+		if arg.GetTypeId() == types.Vector {
+			return arg
+		}
+
+		// Handle nil (empty list) -> empty vector
+		if arg == nil || arg.GetTypeId() == types.Nil {
+			return types.NewMalVector([]types.MalType{})
+		}
+
+		// Convert list to vector
+		if arg.GetTypeId() == types.List {
+			list := arg.(types.MalSeq)
+			return types.NewMalVector(list.Children())
+		}
+
 		panic("boom!")
 	})
 }
@@ -485,6 +577,9 @@ func AddCoreToEnv(e *types.Env) {
 		"reset!":      Reset(),
 		"deref":       Deref(),
 		"load-file":   LoadFile(),
+		"cons":        Cons(),
+		"concat":      Concat(),
+		"vec":         Vec(),
 	}
 
 	for name, builtin := range builtins {
@@ -497,6 +592,6 @@ func SetupArgv(e *types.Env, args []string) {
 		malArgs[i] = types.NewMalString(arg)
 	}
 
-	argv := types.NewMalList(types.List, malArgs)
+	argv := types.NewMalList(malArgs)
 	e.Add(*types.NewMalSymbol("*ARGV*"), argv)
 }

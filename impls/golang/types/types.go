@@ -25,6 +25,13 @@ type MalElement interface {
 	GetElementTypeId() MalTypeId
 }
 
+type MalSeq interface {
+	MalType
+	Children() []MalType
+	First() MalType
+	Tail() []MalType
+}
+
 type MalSymbol struct {
 	symbol string
 }
