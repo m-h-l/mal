@@ -21,7 +21,7 @@ func readForm(r *reader.Reader) (types.MalType, bool) {
 		r.Read()
 		f, ok := readForm(r)
 		if ok {
-			return types.NewMalList(types.List, []types.MalType{types.NewMalGenericAtom("quote"), f}), true
+			return types.NewMalList(types.List, []types.MalType{types.NewMalSymbol("quote"), f}), true
 		} else {
 			fmt.Println("EOF")
 			return nil, false
@@ -30,7 +30,7 @@ func readForm(r *reader.Reader) (types.MalType, bool) {
 		r.Read()
 		f, ok := readForm(r)
 		if ok {
-			return types.NewMalList(types.List, []types.MalType{types.NewMalGenericAtom("quasiquote"), f}), true
+			return types.NewMalList(types.List, []types.MalType{types.NewMalSymbol("quasiquote"), f}), true
 		} else {
 			fmt.Println("EOF")
 			return nil, false
@@ -39,7 +39,7 @@ func readForm(r *reader.Reader) (types.MalType, bool) {
 		r.Read()
 		f, ok := readForm(r)
 		if ok {
-			return types.NewMalList(types.List, []types.MalType{types.NewMalGenericAtom("unquote"), f}), true
+			return types.NewMalList(types.List, []types.MalType{types.NewMalSymbol("unquote"), f}), true
 		} else {
 			fmt.Println("EOF")
 			return nil, false
@@ -48,7 +48,7 @@ func readForm(r *reader.Reader) (types.MalType, bool) {
 		r.Read()
 		f, ok := readForm(r)
 		if ok {
-			return types.NewMalList(types.List, []types.MalType{types.NewMalGenericAtom("deref"), f}), true
+			return types.NewMalList(types.List, []types.MalType{types.NewMalSymbol("deref"), f}), true
 		} else {
 			fmt.Println("EOF")
 			return nil, false
@@ -57,7 +57,7 @@ func readForm(r *reader.Reader) (types.MalType, bool) {
 		r.Read()
 		f, ok := readForm(r)
 		if ok {
-			return types.NewMalList(types.List, []types.MalType{types.NewMalGenericAtom("splice-unquote"), f}), true
+			return types.NewMalList(types.List, []types.MalType{types.NewMalSymbol("splice-unquote"), f}), true
 		} else {
 			fmt.Println("EOF")
 			return nil, false
@@ -68,7 +68,7 @@ func readForm(r *reader.Reader) (types.MalType, bool) {
 		obj, ok2 := readForm(r)
 		if ok1 && ok2 {
 			return types.NewMalList(types.List, []types.MalType{
-				types.NewMalGenericAtom("with-meta"),
+				types.NewMalSymbol("with-meta"),
 				obj,
 				meta,
 			}), true
@@ -112,7 +112,7 @@ func readList(start string, end string, kind types.MalTypeId, r *reader.Reader) 
 	return types.NewMalList(kind, items), true
 }
 
-func readAtom(r *reader.Reader) (types.MalAtom, bool) {
+func readAtom(r *reader.Reader) (types.MalElement, bool) {
 	t, ok := r.Read()
 	if !ok {
 		return nil, false
@@ -145,7 +145,7 @@ func readAtom(r *reader.Reader) (types.MalAtom, bool) {
 		return types.NewMalNumber(i), true
 	}
 
-	return types.NewMalGenericAtom(t), true
+	return types.NewMalSymbol(t), true
 }
 
 func Parse(r *reader.Reader) (types.MalType, bool) {

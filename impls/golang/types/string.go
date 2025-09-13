@@ -14,12 +14,12 @@ func NewMalString(str string) *MalString {
 	}
 }
 
-func (str MalString) GetAtomTypeId() MalTypeId {
+func (str MalString) GetElementTypeId() MalTypeId {
 	return String
 }
 
 func (str MalString) GetTypeId() MalTypeId {
-	return str.GetAtomTypeId()
+	return str.GetElementTypeId()
 }
 
 func (ms MalString) GetStr(readable bool) string {

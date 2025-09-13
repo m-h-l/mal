@@ -10,11 +10,11 @@ func NewMalBool(state bool) *MalBool {
 	}
 }
 
-func (bool MalBool) GetAtomTypeId() MalTypeId {
+func (bool MalBool) GetElementTypeId() MalTypeId {
 	return Boolean
 }
 func (bool MalBool) GetTypeId() MalTypeId {
-	return bool.GetAtomTypeId()
+	return bool.GetElementTypeId()
 }
 
 func (bool MalBool) GetStr(readable bool) string {

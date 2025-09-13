@@ -28,12 +28,12 @@ func (f *MalFunction) CanTCO() bool {
 	return !f.isBuiltin
 }
 
-func (fn MalFunction) GetAtomTypeId() MalTypeId {
+func (fn MalFunction) GetElementTypeId() MalTypeId {
 	return Function
 }
 
 func (fn MalFunction) GetTypeId() MalTypeId {
-	return fn.GetAtomTypeId()
+	return fn.GetElementTypeId()
 }
 
 func (fn MalFunction) GetStr(readable bool) string {

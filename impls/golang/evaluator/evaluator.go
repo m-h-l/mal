@@ -41,7 +41,7 @@ func Eval(ast types.MalType, env *types.Env) (types.MalType, bool) {
 }
 
 func evalStep(ast types.MalType, env *types.Env) EvalResult {
-	if v, ok := env.Get(*types.NewMalGenericAtom("DEBUG-EVAL")); ok {
+	if v, ok := env.Get(*types.NewMalSymbol("DEBUG-EVAL")); ok {
 		switch o := (*v).(type) {
 		case *types.MalNil:
 		case *types.MalBool:
@@ -213,16 +213,114 @@ func evalDo(list types.MalList, e *types.Env) EvalResult {
 		}
 	}
 	return NewContinue(rest[len(rest)-1], e)
+}
 
+func evalQuote(list types.MalList, e *types.Env) EvalResult {
+	rest := list.Tail()
+	if len(rest) != 1 {
+		panic("boom!")
+	}
+	return NewValue(rest[0], true)
+}
+
+func evalQuasiquote(list types.MalList, e *types.Env) EvalResult {
+	rest := list.Tail()
+	if len(rest) != 1 {
+		panic("boom!")
+	}
+
+	expanded := quasiquoteExpand(rest[0])
+	return NewContinue(expanded, e)
+}
+
+func quasiquoteExpand(ast types.MalType) types.MalType {
+	switch typedAst := ast.(type) {
+	case *types.MalList:
+		if typedAst.IsEmpty() {
+			return ast
+		}
+
+		// Check if it's an unquote form: (unquote x)
+		if isUnquote(typedAst) {
+			return typedAst.Tail()[0]
+		}
+
+		// Check if it's a quasiquote form: (quasiquote x)
+		if isQuasiquote(typedAst) {
+			return quasiquoteExpand(quasiquoteExpand(typedAst.Tail()[0]))
+		}
+		return quasiquoteList(typedAst.Children())
+
+	default:
+		// Numbers, strings, booleans, etc. evaluate to themselves
+		return ast
+	}
+}
+
+func quasiquoteList(children []types.MalType) types.MalType {
+	result := types.NewMalList(types.List, []types.MalType{})
+
+	// Process the list from right to left
+	for i := len(children) - 1; i >= 0; i-- {
+		child := children[i]
+
+		// Check if child is (unquote-splicing x)
+		if isSplicingUnquote(child) {
+			splicingChild := child.(*types.MalList).Tail()[0]
+			result = types.NewMalList(types.List, []types.MalType{
+				types.NewMalSymbol("concat"),
+				splicingChild,
+				result,
+			})
+		} else {
+			// Regular element - use cons
+			result = types.NewMalList(types.List, []types.MalType{
+				types.NewMalSymbol("cons"),
+				quasiquoteExpand(child),
+				result,
+			})
+		}
+	}
+
+	return result
+}
+
+func isUnquote(ast types.MalType) bool {
+	if list, ok := ast.(*types.MalList); ok && !list.IsEmpty() {
+		if sym, ok := list.First().(*types.MalSymbol); ok {
+			return sym.GetAsString() == "unquote"
+		}
+	}
+	return false
+}
+
+func isQuasiquote(ast types.MalType) bool {
+	if list, ok := ast.(*types.MalList); ok && !list.IsEmpty() {
+		if sym, ok := list.First().(*types.MalSymbol); ok {
+			return sym.GetAsString() == "quasiquote"
+		}
+	}
+	return false
+}
+
+func isSplicingUnquote(ast types.MalType) bool {
+	if list, ok := ast.(*types.MalList); ok && !list.IsEmpty() {
+		if sym, ok := list.First().(*types.MalSymbol); ok {
+			return sym.GetAsString() == "unquote-splicing"
+		}
+	}
+	return false
 }
 
 func getSpecialForm(name string) (bool, func(types.MalList, *types.Env) EvalResult) {
 	m := map[string]func(types.MalList, *types.Env) EvalResult{
-		"if":   evalIf,
-		"def!": evalDef,
-		"let*": evalLetN,
-		"fn*":  evalFnN,
-		"do":   evalDo,
+		"if":         evalIf,
+		"def!":       evalDef,
+		"let*":       evalLetN,
+		"fn*":        evalFnN,
+		"do":         evalDo,
+		"quote":      evalQuote,
+		"quasiquote": evalQuasiquote,
 	}
 	f, ok := m[name]
 	return ok, f

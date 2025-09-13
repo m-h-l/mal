@@ -2,7 +2,11 @@ package core
 
 import (
 	"fmt"
+	"mal/evaluator"
+	"mal/parser"
+	"mal/reader"
 	"mal/types"
+	"os"
 	"strings"
 )
 
@@ -291,29 +295,208 @@ func Not() *types.MalFunction {
 	})
 }
 
+func Eval() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
+		if len(args) == 0 {
+			panic("boom!")
+		}
+		ast := args[0]
+		rootEnv := e.GetRoot()
+		result, ok := evaluator.Eval(ast, rootEnv)
+		if !ok {
+			panic("boom!")
+		}
+		return result
+	})
+}
+
+func ReadString() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
+		if len(args) == 0 {
+			panic("boom!")
+		}
+		if args[0].GetTypeId() != types.String {
+			panic("boom!")
+		}
+		input := args[0].(*types.MalString).GetStr(false)
+		r := reader.NewReader(input)
+		ast, ok := parser.Parse(r)
+		if ok {
+			return ast
+		}
+		return types.NewMalNil()
+	})
+}
+
+func Slurp() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
+		if len(args) == 0 {
+			panic("boom!")
+		}
+		if args[0].GetTypeId() != types.String {
+			panic("boom!")
+		}
+		filename := args[0].(*types.MalString).GetStr(false)
+		data, err := os.ReadFile(filename)
+		if err != nil {
+			panic("boom!")
+		}
+		return types.NewMalString(string(data))
+	})
+}
+
+func Atom() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
+		if len(args) == 0 {
+			panic("boom!")
+		}
+		return types.NewMalAtom(&args[0])
+	})
+}
+
+func IsAtom() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
+		if len(args) == 0 {
+			return types.NewMalBool(false)
+		}
+		if args[0].GetTypeId() == types.Atom {
+			return types.NewMalBool(true)
+		}
+		return types.NewMalBool(false)
+	})
+}
+
+func Deref() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
+		if len(args) == 0 {
+			panic("boom!")
+		}
+		if args[0].GetTypeId() != types.Atom {
+			panic("boom!")
+		}
+		atom := args[0].(*types.MalAtom)
+		return *(atom.Deref())
+	})
+}
+
+func LoadFile() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
+		if len(args) == 0 {
+			panic("boom!")
+		}
+		if args[0].GetTypeId() != types.String {
+			panic("boom!")
+		}
+		filename := args[0].(*types.MalString).GetStr(false)
+		data, err := os.ReadFile(filename)
+		if err != nil {
+			panic("boom!")
+		}
+		input := string(data)
+		r := reader.NewReader(input)
+
+		for {
+			ast, ok := parser.Parse(r)
+			if !ok {
+				// Reached end of input
+				break
+			}
+
+			_, ok = evaluator.Eval(ast, e)
+			if !ok {
+				panic("boom!")
+			}
+		}
+
+		return types.NewMalNil()
+	})
+}
+
+func Reset() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
+		if len(args) < 2 {
+			panic("boom!")
+		}
+		if args[0].GetTypeId() != types.Atom {
+			panic("boom!")
+		}
+		atom := args[0].(*types.MalAtom)
+		newValue := args[1]
+		atom.Set(&newValue)
+		return newValue
+	})
+}
+
+func Swap() *types.MalFunction {
+	return types.NewFunction(func(e *types.Env, args ...types.MalType) types.MalType {
+		if len(args) < 2 {
+			panic("boom!")
+		}
+		if args[0].GetTypeId() != types.Atom {
+			panic("boom!")
+		}
+		atom := args[0].(*types.MalAtom)
+		fun := args[1]
+		if fun.GetTypeId() != types.Function {
+			panic("boom!")
+		}
+		f := fun.(*types.MalFunction)
+		sArgs := append([]types.MalType{*(atom.Deref())}, args[2:]...)
+
+		newValue, ok := evaluator.Eval(
+			types.NewMalList(types.List, append([]types.MalType{f}, sArgs...)),
+			e,
+		)
+
+		if ok {
+			atom.Set(&newValue)
+			return newValue
+		}
+		panic("boom!")
+	})
+}
+
 func AddCoreToEnv(e *types.Env) {
 	builtins := map[string]*types.MalFunction{
-		"+":       Plus(),
-		"*":       Multiply(),
-		"-":       Subtract(),
-		"/":       Divide(),
-		"list":    List(),
-		"list?":   IsList(),
-		"empty?":  Empty(),
-		"count":   Count(),
-		"=":       Equals(),
-		"<":       Smaller(),
-		"<=":      SmallerOrEqual(),
-		">":       Bigger(),
-		">=":      BiggerOrEqual(),
-		"not":     Not(),
-		"str":     Str(),
-		"pr-str":  PrStr(),
-		"prn":     Prn(),
-		"println": Println(),
+		"+":           Plus(),
+		"*":           Multiply(),
+		"-":           Subtract(),
+		"/":           Divide(),
+		"list":        List(),
+		"list?":       IsList(),
+		"empty?":      Empty(),
+		"count":       Count(),
+		"=":           Equals(),
+		"<":           Smaller(),
+		"<=":          SmallerOrEqual(),
+		">":           Bigger(),
+		">=":          BiggerOrEqual(),
+		"not":         Not(),
+		"str":         Str(),
+		"pr-str":      PrStr(),
+		"prn":         Prn(),
+		"println":     Println(),
+		"eval":        Eval(),
+		"read-string": ReadString(),
+		"slurp":       Slurp(),
+		"atom":        Atom(),
+		"atom?":       IsAtom(),
+		"swap!":       Swap(),
+		"reset!":      Reset(),
+		"deref":       Deref(),
+		"load-file":   LoadFile(),
 	}
 
 	for name, builtin := range builtins {
-		e.Add(*types.NewMalGenericAtom(name), builtin)
+		e.Add(*types.NewMalSymbol(name), builtin)
 	}
+}
+func SetupArgv(e *types.Env, args []string) {
+	malArgs := make([]types.MalType, len(args))
+	for i, arg := range args {
+		malArgs[i] = types.NewMalString(arg)
+	}
+
+	argv := types.NewMalList(types.List, malArgs)
+	e.Add(*types.NewMalSymbol("*ARGV*"), argv)
 }

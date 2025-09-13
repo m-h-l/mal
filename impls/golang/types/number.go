@@ -12,11 +12,11 @@ func NewMalNumber(num int64) *MalNumber {
 	}
 }
 
-func (num MalNumber) GetAtomTypeId() MalTypeId {
+func (num MalNumber) GetElementTypeId() MalTypeId {
 	return Number
 }
 func (num MalNumber) GetTypeId() MalTypeId {
-	return num.GetAtomTypeId()
+	return num.GetElementTypeId()
 }
 
 func (num MalNumber) GetAsInt() int64 {

@@ -12,6 +12,7 @@ const (
 	Vector
 	Map
 	Function
+	Atom
 )
 
 type MalType interface {
@@ -19,16 +20,16 @@ type MalType interface {
 	GetStr(bool) string
 }
 
-type MalAtom interface {
+type MalElement interface {
 	MalType
-	GetAtomTypeId() MalTypeId
+	GetElementTypeId() MalTypeId
 }
 
 type MalSymbol struct {
 	symbol string
 }
 
-func NewMalGenericAtom(symbol string) *MalSymbol {
+func NewMalSymbol(symbol string) *MalSymbol {
 	return &MalSymbol{
 		symbol: symbol,
 	}
@@ -38,12 +39,12 @@ func (symbol MalSymbol) GetAsString() string {
 	return symbol.symbol
 }
 
-func (symbol MalSymbol) GetAtomTypeId() MalTypeId {
+func (symbol MalSymbol) GetElementTypeId() MalTypeId {
 	return Symbol
 }
 
 func (symbol MalSymbol) GetTypeId() MalTypeId {
-	return symbol.GetAtomTypeId()
+	return symbol.GetElementTypeId()
 }
 
 func (symbol MalSymbol) GetStr(readable bool) string {
@@ -57,12 +58,12 @@ func NewMalNil() *MalNil {
 	return &MalNil{}
 }
 
-func (nil MalNil) GetAtomTypeId() MalTypeId {
+func (nil MalNil) GetElementTypeId() MalTypeId {
 	return Nil
 }
 
 func (nil MalNil) GetTypeId() MalTypeId {
-	return nil.GetAtomTypeId()
+	return nil.GetElementTypeId()
 }
 
 func (nil MalNil) GetStr(readable bool) string {
@@ -96,4 +97,12 @@ func (env *Env) Get(symbol MalSymbol) (*MalType, bool) {
 	}
 
 	return nil, false
+}
+
+func (env *Env) GetRoot() *Env {
+	root := env
+	for root.outer != nil {
+		root = root.outer
+	}
+	return root
 }
